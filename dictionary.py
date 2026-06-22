@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QGridLayout, QScrollArea
 )
-from PyQt6.QtCore import Qt, QProcess, QSize, QTimer
+from PyQt6.QtCore import Qt, QSize, QTimer
 from PyQt6.QtGui import QFont, QIcon, QPixmap
 import configparser
 
@@ -17,7 +17,6 @@ class DictionaryApp(QMainWindow):
         super().__init__()
         self.PASSWORD = "AZHfhszmh#786_abbas007_4252"
         self.games = []
-        self.game_processes = {}
         self.clear_timer = QTimer()
         self.clear_timer.timeout.connect(self.clear_status)
         self.init_ui()
@@ -28,14 +27,12 @@ class DictionaryApp(QMainWindow):
         self.setGeometry(100, 100, 700, 600)
         self.setWindowIcon(QIcon.fromTheme("accessories-dictionary"))
         
-        # Main widget
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
         layout.setSpacing(10)
         layout.setContentsMargins(15, 15, 15, 15)
         
-        # Title
         title = QLabel("Dictionary")
         title_font = QFont()
         title_font.setPointSize(18)
@@ -43,23 +40,19 @@ class DictionaryApp(QMainWindow):
         title.setFont(title_font)
         layout.addWidget(title)
         
-        # Instructions
         instructions = QLabel("Enter word:")
         layout.addWidget(instructions)
         
-        # Input field
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("Type here...")
         self.input_field.returnPressed.connect(self.on_enter_pressed)
         self.input_field.setMinimumHeight(40)
         layout.addWidget(self.input_field)
         
-        # Status label
         self.status_label = QLabel("")
         self.status_label.setStyleSheet("color: red;")
         layout.addWidget(self.status_label)
         
-        # Games container (initially hidden)
         self.games_container = QWidget()
         self.games_layout = QGridLayout(self.games_container)
         self.games_layout.setSpacing(10)
@@ -82,7 +75,6 @@ class DictionaryApp(QMainWindow):
         else:
             self.status_label.setText("Incorrect.")
             self.input_field.clear()
-            # Auto-clear after 5 seconds
             self.clear_timer.start(5000)
             
     def clear_status(self):
@@ -90,17 +82,16 @@ class DictionaryApp(QMainWindow):
         self.clear_timer.stop()
             
     def load_games(self):
-        """Load all games from KDE application menu"""
         self.games = []
         
-        # Desktop file locations
+        # Added Flatpak directories to the search path
         desktop_dirs = [
             Path.home() / ".local/share/applications",
             Path("/usr/share/applications"),
             Path("/usr/local/share/applications"),
+            Path("/var/lib/flatpak/exports/share/applications"),
+            Path.home() / ".local/share/flatpak/exports/share/applications",
         ]
-        
-        game_categories = ["Game", "Games"]
         
         for directory in desktop_dirs:
             if not directory.exists():
@@ -109,22 +100,19 @@ class DictionaryApp(QMainWindow):
             for desktop_file in directory.glob("*.desktop"):
                 try:
                     config = configparser.ConfigParser()
+                    # strict=False allows parsing some malformed desktop files
                     config.read(desktop_file)
                     
                     if "Desktop Entry" not in config:
                         continue
                     
                     entry = config["Desktop Entry"]
-                    
-                    # Check if it's a game
                     categories = entry.get("Categories", "").split(";")
-                    
-                    # Check if game is hidden
                     hidden = entry.get("Hidden", "false").lower() == "true"
                     
-                    is_game = any(cat in game_categories for cat in categories)
+                    # Case insensitive check so "game" or "Games" both work
+                    is_game = any(cat.lower() in ["game", "games"] for cat in categories)
                     
-                    # Include games even if NoDisplay=true (we're bypassing the normal menu)
                     if is_game and not hidden:
                         name = entry.get("Name", "Unknown")
                         exec_cmd = entry.get("Exec", "")
@@ -137,10 +125,9 @@ class DictionaryApp(QMainWindow):
                                 "icon": icon,
                                 "desktop_file": str(desktop_file)
                             })
-                except Exception as e:
+                except Exception:
                     pass
         
-        # Remove duplicates by name
         seen = set()
         unique_games = []
         for game in self.games:
@@ -150,8 +137,6 @@ class DictionaryApp(QMainWindow):
         self.games = unique_games
         
     def show_games(self):
-        """Display all games in a grid"""
-        # Clear previous layout
         while self.games_layout.count():
             widget = self.games_layout.takeAt(0).widget()
             if widget:
@@ -167,7 +152,6 @@ class DictionaryApp(QMainWindow):
                 button.setMinimumHeight(100)
                 button.setMinimumWidth(120)
                 
-                # Try to set icon
                 try:
                     icon = QIcon.fromTheme(game["icon"])
                     if not icon.isNull():
@@ -185,16 +169,15 @@ class DictionaryApp(QMainWindow):
         self.scroll_area.setVisible(True)
         
     def launch_game(self, game):
-        """Launch a game"""
         try:
             exec_cmd = game["exec"]
             # Clean up exec command (remove %U, %F, etc.)
             exec_cmd = exec_cmd.split("%")[0].strip()
             
-            process = QProcess()
-            process.startDetached(exec_cmd)
+            # Using subprocess.Popen with shell=True handles complex Steam arguments flawlessly
+            subprocess.Popen(exec_cmd, shell=True, start_new_session=True)
         except Exception as e:
-            self.status_label.setText(f"Error launching game")
+            self.status_label.setText(f"Error launching game: {str(e)}")
 
 def main():
     app = QApplication(sys.argv)
