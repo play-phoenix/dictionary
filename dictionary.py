@@ -122,7 +122,7 @@ class DictionaryApp(QMainWindow):
                                 "desktop_file": str(desktop_file)
                             })
                 except Exception as e:
-                    print(f"Error reading {desktop_file}: {e}")
+                    pass
         
         # Remove duplicates by name
         seen = set()
