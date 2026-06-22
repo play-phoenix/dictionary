@@ -120,12 +120,12 @@ class DictionaryApp(QMainWindow):
                     categories = entry.get("Categories", "").split(";")
                     
                     # Check if game is hidden
-                    no_display = entry.get("NoDisplay", "false").lower() == "true"
                     hidden = entry.get("Hidden", "false").lower() == "true"
                     
                     is_game = any(cat in game_categories for cat in categories)
                     
-                    if is_game and not no_display and not hidden:
+                    # Include games even if NoDisplay=true (we're bypassing the normal menu)
+                    if is_game and not hidden:
                         name = entry.get("Name", "Unknown")
                         exec_cmd = entry.get("Exec", "")
                         icon = entry.get("Icon", "application-games")
