@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dictionary
+Comment=Hidden games launcher
+Exec=python3 /usr/local/bin/dictionary.py
+Icon=accessories-dictionary
+Categories=Utility;Accessories;
+Terminal=false
+StartupNotify=true
