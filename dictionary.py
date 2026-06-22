@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QGridLayout, QScrollArea
 )
-from PyQt6.QtCore import Qt, QProcess, QSize
+from PyQt6.QtCore import Qt, QProcess, QSize, QTimer
 from PyQt6.QtGui import QFont, QIcon, QPixmap
 import configparser
 
@@ -18,18 +18,22 @@ class DictionaryApp(QMainWindow):
         self.PASSWORD = "AZHfhszmh#786_abbas007_4252"
         self.games = []
         self.game_processes = {}
+        self.clear_timer = QTimer()
+        self.clear_timer.timeout.connect(self.clear_status)
         self.init_ui()
         self.load_games()
         
     def init_ui(self):
         self.setWindowTitle("Dictionary")
-        self.setGeometry(100, 100, 600, 400)
+        self.setGeometry(100, 100, 700, 600)
         self.setWindowIcon(QIcon.fromTheme("accessories-dictionary"))
         
         # Main widget
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(15, 15, 15, 15)
         
         # Title
         title = QLabel("Dictionary")
@@ -47,19 +51,24 @@ class DictionaryApp(QMainWindow):
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("Type here...")
         self.input_field.returnPressed.connect(self.on_enter_pressed)
+        self.input_field.setMinimumHeight(40)
         layout.addWidget(self.input_field)
+        
+        # Status label
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet("color: red;")
+        layout.addWidget(self.status_label)
         
         # Games container (initially hidden)
         self.games_container = QWidget()
         self.games_layout = QGridLayout(self.games_container)
+        self.games_layout.setSpacing(10)
+        
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidget(self.games_container)
+        self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setVisible(False)
         layout.addWidget(self.scroll_area)
-        
-        # Status label
-        self.status_label = QLabel("")
-        layout.addWidget(self.status_label)
         
         layout.addStretch()
         
@@ -68,10 +77,17 @@ class DictionaryApp(QMainWindow):
         
         if password == self.PASSWORD:
             self.input_field.clear()
+            self.status_label.setText("")
             self.show_games()
         else:
             self.status_label.setText("Incorrect.")
             self.input_field.clear()
+            # Auto-clear after 5 seconds
+            self.clear_timer.start(5000)
+            
+    def clear_status(self):
+        self.status_label.setText("")
+        self.clear_timer.stop()
             
     def load_games(self):
         """Load all games from KDE application menu"""
@@ -137,24 +153,26 @@ class DictionaryApp(QMainWindow):
         """Display all games in a grid"""
         # Clear previous layout
         while self.games_layout.count():
-            self.games_layout.takeAt(0).widget().deleteLater()
+            widget = self.games_layout.takeAt(0).widget()
+            if widget:
+                widget.deleteLater()
         
         if not self.games:
             no_games = QLabel("No games found")
-            self.games_layout.addWidget(no_games)
+            self.games_layout.addWidget(no_games, 0, 0)
         else:
             for idx, game in enumerate(self.games):
                 button = QPushButton()
                 button.setText(game["name"])
-                button.setMinimumHeight(80)
-                button.setMinimumWidth(100)
+                button.setMinimumHeight(100)
+                button.setMinimumWidth(120)
                 
                 # Try to set icon
                 try:
                     icon = QIcon.fromTheme(game["icon"])
                     if not icon.isNull():
                         button.setIcon(icon)
-                        button.setIconSize(QSize(48, 48))
+                        button.setIconSize(QSize(64, 64))
                 except:
                     pass
                 
@@ -176,7 +194,7 @@ class DictionaryApp(QMainWindow):
             process = QProcess()
             process.startDetached(exec_cmd)
         except Exception as e:
-            self.status_label.setText(f"Error launching game: {e}")
+            self.status_label.setText(f"Error launching game")
 
 def main():
     app = QApplication(sys.argv)
