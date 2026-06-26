@@ -2,7 +2,7 @@
 
 A hidden games launcher for KDE Plasma that disguises itself as a Dictionary utility app.
 
-## Features
+Features
 
 - **Appears as a Dictionary app** in the Utilities section of your app menu
 - **Password-protected games access** - Enter the secret password to see all games
